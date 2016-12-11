@@ -1,108 +1,68 @@
 import React, { Component, PropTypes } from 'react';
-import { createContainer } from 'meteor/react-meteor-data';
-import ReactDOM from 'react-dom';
-import { Tasks } from '../api/tasks.js';
-import Task from './Task.jsx';
-import AccountsUIWrapper from './AccountsUIWrapper.jsx';
-import { Meteor } from 'meteor/meteor';
-
+import { Button, Nav, NavItem } from 'react-bootstrap';
+import TimeType from '../shared/enums.js';
+import EnergyGraph from './EnergyGraph.jsx';
+import TodoList from './TodoList.jsx';
 
 // App component - represents the whole app
 export default class App extends Component {
   constructor(props) {
     super(props);
 
+    // Define the state
     this.state = {
-      hideCompleted: false,
+      graphType: TimeType.DAY,
+      activeNav: 1,
     };
   }
 
-  handleSubmit(event) {
-    event.preventDefault();
-
-    // Find the text field via the React ref
-    const text = ReactDOM.findDOMNode(this.refs.textInput).value.trim();
-
-    Meteor.call('tasks.insert', text);
-
-    // Clear form
-    ReactDOM.findDOMNode(this.refs.textInput).value = '';
-  }
-
-  toggleHideCompleted() {
+  // Triggered when a navigation tab is selected
+  handleSelect(selectedKey) {
     this.setState({
-      hideCompleted: !this.state.hideCompleted,
+      activeNav: selectedKey
     });
   }
 
-	renderTasks() {
-    let filteredTasks = this.props.tasks;
-    if (this.state.hideCompleted) {
-      filteredTasks = filteredTasks.filter(task => !task.checked);
-    }
-    return filteredTasks.map((task) => {
-      const currentUserId = this.props.currentUser && this.props.currentUser._id;
-      const showPrivateButton = task.owner === currentUserId;
-
-      return (
-        <Task
-          key={task._id}
-          task={task}
-          showPrivateButton={showPrivateButton}
-        />
-      );
-    });
-	}
+  // Separate method to display component
+  getPageContent() {
+    return (
+      <div>
+        { this.state.activeNav == 1 ?
+            <EnergyGraph
+              graphType={this.state.graphType}>
+            </EnergyGraph> : <TodoList/>
+        }
+      </div>
+    );
+  }
 
 	render() {
+
+    // Variable declared in render() method
+    const pageContent = this.state.activeNav == 1 ?
+        <EnergyGraph
+          graphType={this.state.graphType}>
+        </EnergyGraph> : <TodoList/>;
+
 		return (
 			<div className="container">
 				<header>
-          <h1>Todo List ({this.props.incompleteCount})</h1>
-          <label className="hide-completed">
-            <input
-              type="checkbox"
-              readOnly
-              checked={this.state.hideCompleted}
-              onClick={this.toggleHideCompleted.bind(this)}
-            />
-            Hide Completed Tasks
-          </label>
-
-          <AccountsUIWrapper />
-
-          { this.props.currentUser ?
-            <form className="new-task" onSubmit={this.handleSubmit.bind(this)} >
-              <input
-                type="text"
-                ref="textInput"
-                placeholder="Type to add new tasks"
-              />
-            </form> : ''
-          }
+          <h1>Princeton Energy Graph</h1>
+          <Nav bsStyle="pills" activeKey={this.state.activeNav} onSelect={this.handleSelect.bind(this)}>
+            <NavItem eventKey={1}>Energy Graph</NavItem>
+            <NavItem eventKey={2}>TodoList</NavItem>
+          </Nav>
 				</header>
 
-				<ul>
-					{this.renderTasks()}
-				</ul>
+        { /* Inline ternary if-else */ }
+        { this.state.activeNav == 1 ?
+         <EnergyGraph
+         graphType={this.state.graphType}>
+         </EnergyGraph> :
+         <TodoList></TodoList>
+        }
 			</div>
 		);
 	}
 }
 
-App.propTypes = {
-  tasks: PropTypes.array.isRequired,
-  incompleteCount: PropTypes.number.isRequired,
-  currentUser: PropTypes.object,
-  showPrivateButton: React.PropTypes.bool.isRequired,
-};
-
-export default createContainer(() => {
-  Meteor.subscribe('tasks');
-
-  return {
-    tasks: Tasks.find({}, { sort: { createdAt: -1 } }).fetch(),
-    incompleteCount: Tasks.find({ checked: { $ne: true } }).count(),
-    currentUser: Meteor.user(),
-  };
-}, App);
