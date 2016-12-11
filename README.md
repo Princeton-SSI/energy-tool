@@ -3,6 +3,7 @@ Didactic Meteor app that displays campus energy data from the TigerEnergy API
 
 ## Installation
 
+0. [Install Meteor](https://www.meteor.com/install)
 1. `git clone` this repository
 2. `cd energy-tool/energy-tool`
 3. `meteor npm install`
